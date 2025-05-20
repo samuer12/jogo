@@ -1,13 +1,24 @@
 <!DOCTYPE html>
-<html lang="pt-br">
+<html lang="pt-BR">
 <head>
   <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Jogo</title>
+  <title>Atari</title>
   <link rel="stylesheet" href="style.css">
 </head>
 <body>
-  <canvas id="gameCanvas"></canvas>
+  <nav>
+    <a href="index.html">Início</a>
+    <a href="desenvolvedores.html">Desenvolvedores</a>
+    <a href="jogo.html">Jogar</a>
+  </nav>
+
+  <main>
+    <h1> mini Atari</h1>
+    <p><strong>Como jogar:</strong> Use as setas direita e esquerda para mover a nave e clique com o mouse para atirar tente destruir o maximo que conseguir. Ganhe ao destruir 50 inimigos!</p>
+    <button onclick="iniciarJogo()">Iniciar Jogo</button>
+    <canvas id="meuCanvas" width="600" height="400" style="display:none;"></canvas>
+  </main>
+
   <script src="script.js"></script>
 </body>
 </html>

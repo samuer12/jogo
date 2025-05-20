@@ -1,75 +1,178 @@
-const canvas = document.getElementById('gameCanvas');
-const ctx = canvas.getContext('2d');
+// base do jogo
+const canvas = document.getElementById("meuCanvas");
+const ctx = canvas.getContext("2d");
 
-canvas.width = 600; 
-canvas.height = 400; 
+// Carrega as imagens
+const naveImg = new Image();
+naveImg.src = "ship.png";
+const alienImg = new Image();
+alienImg.src = "alien.png";
 
-let pontuacao = 0;
-let jogador = { x: canvas.width / 2, y: canvas.height - 70, w: 40, h: 40, sprite: new Image() };
-jogador.sprite.src = 'ship.png'; 
 
-let tiros = [];
-let inimigos = [];
-const inimigoSprite = new Image();
-inimigoSprite.src = 'alien.png';
+const jogador = {
+  x: 280, 
+  y: 340,
+  largura: 40,
+  altura: 40
+};
 
-function desenharSprite(obj, sprite) {
-  ctx.drawImage(sprite, obj.x, obj.y, obj.w, obj.h);
+let tiros = [];    
+let inimigos = []; 
+let pontos = 0;    
+let vidas = 3;     
+let jogoAtivo = true; 
+
+// Função para iniciar o jogo
+function iniciarJogo() {
+  document.querySelector("button").style.display = "none";
+  canvas.style.display = "block";
+  jogoAtivo = true;
+  pontos = 0;
+  vidas = 3;
+  tiros = [];
+  inimigos = [];
+  jogador.x = 280;
+  desenhar();
 }
 
-setInterval(() => {
-  inimigos.push({ x: Math.random() * (canvas.width - 40), y: 0, w: 40, h: 40 });
-}, 1000);
+// Cria inimigos a cada 2 segundos
+setInterval(criarInimigo, 2000);
 
-function atualizar() {
-  tiros = tiros.filter(t => (t.y -= 5) > 0);
-  inimigos = inimigos.filter(i => (i.y += 2) < canvas.height);
-  tiros.forEach((t, ti) => {
-    inimigos.forEach((i, ii) => {
-      if (t.x < i.x + i.w && t.x + t.w > i.x && t.y < i.y + i.h && t.y + t.h > i.y) {
-        tiros.splice(ti, 1);
-        inimigos.splice(ii, 1);
-        pontuacao++;
-      }
-    });
+function criarInimigo() {
+  if (!jogoAtivo) return;
+  
+  inimigos.push({
+    x: Math.random() * (canvas.width - 40),
+    y: 0,
+    largura: 40,
+    altura: 40
   });
-
-  if (pontuacao === 50) {
-    ctx.clearRect(0, 0, canvas.width, canvas.height);
-    ctx.fillStyle = 'white';
-    ctx.font = '48px Arial';
-    ctx.textAlign = 'center';
-    ctx.fillText('Você Ganhou!', canvas.width / 2, canvas.height / 2);
-    return true; 
-  }
-
-  return false; 
 }
 
-function desenharTudo() {
+// Controles do jogador
+document.addEventListener("keydown", (e) => {
+  if (!jogoAtivo) return;
+  
+  if (e.key === "ArrowLeft") jogador.x -= 10;
+  if (e.key === "ArrowRight") jogador.x += 10;
+  
+  //  nave no canvas
+  jogador.x = Math.max(0, Math.min(canvas.width - jogador.largura, jogador.x));
+});
+
+//  tiros  clique
+document.addEventListener("click", () => {
+  if (!jogoAtivo) return;
+  
+  tiros.push({
+    x: jogador.x + jogador.largura/2 - 2.5,
+    y: jogador.y,
+    largura: 5,
+    altura: 10
+  });
+});
+
+// Função principal que desenha tudo
+function desenhar() {
+  // Limpa o canvas
   ctx.clearRect(0, 0, canvas.width, canvas.height);
-  desenharSprite(jogador, jogador.sprite);
-  tiros.forEach(t => ctx.fillRect(t.x, t.y, t.w, t.h));
-  inimigos.forEach(i => desenharSprite(i, inimigoSprite));
-  ctx.fillStyle = 'cyan';
-  ctx.font = '20px Arial';
-  ctx.fillText(`Pontuação: ${pontuacao}`, 10, 20);
-}
-
-function loop() {
-  if (!atualizar()) {
-    desenharTudo();
-    requestAnimationFrame(loop);
+  
+  
+  ctx.drawImage(naveImg, jogador.x, jogador.y, jogador.largura, jogador.altura);
+  
+ 
+  atualizarTiros();
+  
+  atualizarInimigos();
+  
+  verificarColisoes();
+ 
+  mostrarHUD();
+  
+  verificarFimDeJogo();
+  
+  // Continua o loop do jogo
+  if (jogoAtivo) {
+    requestAnimationFrame(desenhar);
   }
 }
 
-loop();
 
-document.addEventListener('keydown', e => {
-  jogador.x += e.key === 'ArrowLeft' ? -10 : e.key === 'ArrowRight' ? 10 : 0;
-  jogador.x = Math.max(0, Math.min(canvas.width - jogador.w, jogador.x));
-});
+function atualizarTiros() {
+  ctx.fillStyle = "red";
+  
+  // Move os tiros para cima
+  tiros.forEach(tiro => {
+    tiro.y -= 5;
+    ctx.fillRect(tiro.x, tiro.y, tiro.largura, tiro.altura);
+  });
+  
+  // Remove tiros que saíram da tela
+  tiros = tiros.filter(tiro => tiro.y + tiro.altura > 0);
+}
 
-document.addEventListener('click', () => {
-  tiros.push({ x: jogador.x + jogador.w / 2 - 2.5, y: jogador.y, w: 5, h: 10 });
-});
+function atualizarInimigos() {
+  // Move os aliens para baixo
+  inimigos.forEach(inimigo => {
+    inimigo.y += 2;
+    ctx.drawImage(alienImg, inimigo.x, inimigo.y, inimigo.largura, inimigo.altura);
+  });
+  
+  // Remove alien que saíram da tela
+  inimigos = inimigos.filter(inimigo => inimigo.y < canvas.height + inimigo.altura);
+}
+
+function verificarColisoes() {
+  // Tiros acertam monstro
+  for (let i = tiros.length - 1; i >= 0; i--) {
+    for (let j = inimigos.length - 1; j >= 0; j--) {
+      if (colisao(tiros[i], inimigos[j])) {
+        tiros.splice(i, 1);
+        inimigos.splice(j, 1);
+        pontos++;
+        break;
+      }
+    }
+  }
+  
+  // Inimigos atingem a nave
+  for (let i = inimigos.length - 1; i >= 0; i--) {
+    if (colisao(inimigos[i], jogador)) {
+      inimigos.splice(i, 1);
+      vidas--;
+      if (vidas <= 0) {
+        jogoAtivo = false;
+      }
+    }
+  }
+}
+
+//  colisão
+function colisao(obj1, obj2) {
+  return obj1.x < obj2.x + obj2.largura &&
+         obj1.x + obj1.largura > obj2.x &&
+         obj1.y < obj2.y + obj2.altura &&
+         obj1.y + obj1.altura > obj2.y;
+}
+
+function mostrarHUD() {
+  ctx.fillStyle = "cyan";
+  ctx.font = "16px Arial";
+  ctx.fillText(`Pontos: ${pontos}`, 10, 20);
+  ctx.fillText(`Vidas: ${vidas}`, 10, 40);
+}
+
+function verificarFimDeJogo() {
+  if (vidas <= 0) {
+    mostrarMensagem("Você Perdeu!");
+  } else if (pontos >= 50) {
+    mostrarMensagem("Você Ganhou!");
+  }
+}
+
+function mostrarMensagem(texto) {
+  ctx.fillStyle = "white";
+  ctx.font = "40px Arial";
+  ctx.fillText(texto, canvas.width/2 - 120, canvas.height/2);
+  jogoAtivo = false;
+}
